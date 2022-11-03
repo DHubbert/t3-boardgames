@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   // NOTE: When using postgresql, mysql or sqlserver, uncomment the @db.Text annotations in model Account below
   // Further reading:
   // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
@@ -14,10 +14,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Example {
+model Game {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  name      String
+  bgg_url   String?
+  duration_lower Int?
+  duration_upper Int?
+  min_players Int?
+  max_players Int?
+  userId   String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description String? @db.Text
+  bgg_id    Int?
+  image_url String?
+  thumbnail_url String?
+  year_published Int?
+  publisherId String
+  publisher Publisher @relation(fields: [publisherId], references: [id])
+  expansion Boolean?
+  expansion_of Game @relation("expansion_of", fields: [id], references: [id], onDelete: Cascade)
+  expansions Game[] @relation("expansion_of")
+  ratings Rating[]
+  mechanics MechanicOnGame[]
+}
+
+model Publisher {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  bgg_url   String?
+  bgg_id    Int?
+  image_url String?
+  thumbnail_url String?
+  description String? @db.Text
+  games     Game[]
+}
+
+model Mechanic {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  bgg_url   String?
+  bgg_id    Int?
+  image_url String?
+  thumbnail_url String?
+  description String? @db.Text
+  games     MechanicOnGame[]
+}
+
+model MechanicOnGame {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  mechanicId String
+  mechanic  Mechanic @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+	@@map("MechanicOnGame")
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rating    Int
+  comment   String? @db.Text
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId    String
+  game      Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }
 
 // Necessary for Next auth
@@ -27,12 +96,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? // @db.Text
-  access_token      String? // @db.Text
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? // @db.Text
+  id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -55,6 +124,8 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  games         Game[]
+  ratings       Rating[]
 }
 
 model VerificationToken {
